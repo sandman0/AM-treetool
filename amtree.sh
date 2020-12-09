@@ -1,62 +1,178 @@
 #!/bin/bash
 #
-# Description: shell script which will export an AM authentication tree to standard output and re-import
-#              from standard input (optionally renaming the tree).
-#
-# Usage: amtree.sh ( -i treename | -e treename ) -h <AM host URL> -u <AM admin> -p <AM admin password>"
-# amtree.sh  -e OnboardingReCAPTCHA  -h https://jamie.frdpcloud.com -u forgerock -p Frdp-2010 > OnboardingReCAPTCHA.json
-# Examples:
-#
-#   1) Export a tree called "Login" to a file:
-#   % ./amtree.sh -e Login -h https://openam.example.com/openam -u amadmin -p password > login.json
-#
-#   2) Import a tree a file and rename it to "LoginTree":
-#   % cat login.json | ./amtree.sh -i LoginTree -h https://openam.example.com/openam -u amadmin -p password
-#
-#   3) Clone a tree called "Login" to a tree called "ClonedLogin":
-#   % ./amtree.sh -e Login -h https://openam.example.com/openam -u amadmin -p password | ./amtree.sh -i ClonedLogin -h https://openam.example.com/openam -u amadmin -p password
-#
-#   4) Copy a tree called "Login" to a tree called "ClonedLogin" on another AM instance:
-#   % ./amtree.sh -e Login -h https://openam.example.com/openam -u amadmin -p password | ./amtree.sh -i ClonedLogin -h https://another.domain.org/openam -u amadmin -p password
-#
-# Limitations: this tool can't export passwords (including API secrets, etc), so these need to be manually added
-#              back to an imported tree or alternatively, export the source tree to a file, edit the file to add
-#              the missing fields before importing. Any other dependencies needed for a tree must also exist prior
-#              to import, for example inner-trees, scripts, and custom authentication JARs.
+# shell script which will export an AM authentication tree to standard output and re-import
+# from standard input (optionally renaming the tree).
 #
 # Uncomment the following line for debug:
 # set -x
 
-CONTAINERNODETYPES=( "PageNode" "CustomPageNode" "Test" )
+OOTBNODETYPES_6=( "AbstractSocialAuthLoginNode" "AccountLockoutNode" "AgentDataStoreDecisionNode" "AnonymousUserNode" "AuthLevelDecisionNode" "ChoiceCollectorNode" "CookiePresenceDecisionNode" "CreatePasswordNode" "DataStoreDecisionNode" "InnerTreeEvaluatorNode" "LdapDecisionNode" "MessageNode" "MetadataNode" "MeterNode" "ModifyAuthLevelNode" "OneTimePasswordCollectorDecisionNode" "OneTimePasswordGeneratorNode" "OneTimePasswordSmsSenderNode" "OneTimePasswordSmtpSenderNode" "PageNode" "PasswordCollectorNode" "PersistentCookieDecisionNode" "PollingWaitNode" "ProvisionDynamicAccountNode" "ProvisionIdmAccountNode" "PushAuthenticationSenderNode" "PushResultVerifierNode" "RecoveryCodeCollectorDecisionNode" "RecoveryCodeDisplayNode" "RegisterLogoutWebhookNode" "RemoveSessionPropertiesNode" "RetryLimitDecisionNode" "ScriptedDecisionNode" "SessionDataNode" "SetFailureUrlNode" "SetPersistentCookieNode" "SetSessionPropertiesNode" "SetSuccessUrlNode" "SocialFacebookNode" "SocialGoogleNode" "SocialNode" "SocialOAuthIgnoreProfileNode" "SocialOpenIdConnectNode" "TimerStartNode" "TimerStopNode" "UsernameCollectorNode" "WebAuthnAuthenticationNode" "WebAuthnRegistrationNode" "ZeroPageLoginNode" )
+OOTBNODETYPES_6_5=( "AbstractSocialAuthLoginNode" "AccountLockoutNode" "AgentDataStoreDecisionNode" "AnonymousUserNode" "AuthLevelDecisionNode" "ChoiceCollectorNode" "CookiePresenceDecisionNode" "CreatePasswordNode" "DataStoreDecisionNode" "InnerTreeEvaluatorNode" "LdapDecisionNode" "MessageNode" "MetadataNode" "MeterNode" "ModifyAuthLevelNode" "OneTimePasswordCollectorDecisionNode" "OneTimePasswordGeneratorNode" "OneTimePasswordSmsSenderNode" "OneTimePasswordSmtpSenderNode" "PageNode" "PasswordCollectorNode" "PersistentCookieDecisionNode" "PollingWaitNode" "ProvisionDynamicAccountNode" "ProvisionIdmAccountNode" "PushAuthenticationSenderNode" "PushResultVerifierNode" "RecoveryCodeCollectorDecisionNode" "RecoveryCodeDisplayNode" "RegisterLogoutWebhookNode" "RemoveSessionPropertiesNode" "RetryLimitDecisionNode" "ScriptedDecisionNode" "SessionDataNode" "SetFailureUrlNode" "SetPersistentCookieNode" "SetSessionPropertiesNode" "SetSuccessUrlNode" "SocialFacebookNode" "SocialGoogleNode" "SocialNode" "SocialOAuthIgnoreProfileNode" "SocialOpenIdConnectNode" "TimerStartNode" "TimerStopNode" "UsernameCollectorNode" "WebAuthnAuthenticationNode" "WebAuthnRegistrationNode" "ZeroPageLoginNode" )
+OOTBNODETYPES_7=( "AcceptTermsAndConditionsNode" "AccountActiveDecisionNode" "AccountLockoutNode" "AgentDataStoreDecisionNode" "AnonymousSessionUpgradeNode" "AnonymousUserNode" "AttributeCollectorNode" "AttributePresentDecisionNode" "AttributeValueDecisionNode" "AuthLevelDecisionNode" "ChoiceCollectorNode" "ConsentNode" "CookiePresenceDecisionNode" "CreateObjectNode" "CreatePasswordNode" "DataStoreDecisionNode" "DeviceGeoFencingNode" "DeviceLocationMatchNode" "DeviceMatchNode" "DeviceProfileCollectorNode" "DeviceSaveNode" "DeviceTamperingVerificationNode" "DisplayUserNameNode" "EmailSuspendNode" "EmailTemplateNode" "IdentifyExistingUserNode" "IncrementLoginCountNode" "InnerTreeEvaluatorNode" "IotAuthenticationNode" "IotRegistrationNode" "KbaCreateNode" "KbaDecisionNode" "KbaVerifyNode" "LdapDecisionNode" "LoginCountDecisionNode" "MessageNode" "MetadataNode" "MeterNode" "ModifyAuthLevelNode" "OneTimePasswordCollectorDecisionNode" "OneTimePasswordGeneratorNode" "OneTimePasswordSmsSenderNode" "OneTimePasswordSmtpSenderNode" "PageNode" "PasswordCollectorNode" "PatchObjectNode" "PersistentCookieDecisionNode" "PollingWaitNode" "ProfileCompletenessDecisionNode" "ProvisionDynamicAccountNode" "ProvisionIdmAccountNode" "PushAuthenticationSenderNode" "PushResultVerifierNode" "QueryFilterDecisionNode" "RecoveryCodeCollectorDecisionNode" "RecoveryCodeDisplayNode" "RegisterLogoutWebhookNode" "RemoveSessionPropertiesNode" "RequiredAttributesDecisionNode" "RetryLimitDecisionNode" "ScriptedDecisionNode" "SelectIdPNode" "SessionDataNode" "SetFailureUrlNode" "SetPersistentCookieNode" "SetSessionPropertiesNode" "SetSuccessUrlNode" "SocialFacebookNode" "SocialGoogleNode" "SocialNode" "SocialOAuthIgnoreProfileNode" "SocialOpenIdConnectNode" "SocialProviderHandlerNode" "TermsAndConditionsDecisionNode" "TimeSinceDecisionNode" "TimerStartNode" "TimerStopNode" "UsernameCollectorNode" "ValidatedPasswordNode" "ValidatedUsernameNode" "WebAuthnAuthenticationNode" "WebAuthnDeviceStorageNode" "WebAuthnRegistrationNode" "ZeroPageLoginNode" "product-CertificateCollectorNode" "product-CertificateUserExtractorNode" "product-CertificateValidationNode" "product-KerberosNode" "product-ReCaptchaNode" "product-Saml2Node" "product-WriteFederationInformationNode" )
+OOTBNODETYPES_7_1=( "PushRegistrationNode" "GetAuthenticatorAppNode" "MultiFactorRegistrationOptionsNode" "OptOutMultiFactorAuthenticationNode" "AcceptTermsAndConditionsNode" "AccountActiveDecisionNode" "AccountLockoutNode" "AgentDataStoreDecisionNode" "AnonymousSessionUpgradeNode" "AnonymousUserNode" "AttributeCollectorNode" "AttributePresentDecisionNode" "AttributeValueDecisionNode" "AuthLevelDecisionNode" "ChoiceCollectorNode" "ConsentNode" "CookiePresenceDecisionNode" "CreateObjectNode" "CreatePasswordNode" "DataStoreDecisionNode" "DeviceGeoFencingNode" "DeviceLocationMatchNode" "DeviceMatchNode" "DeviceProfileCollectorNode" "DeviceSaveNode" "DeviceTamperingVerificationNode" "DisplayUserNameNode" "EmailSuspendNode" "EmailTemplateNode" "IdentifyExistingUserNode" "IncrementLoginCountNode" "InnerTreeEvaluatorNode" "IotAuthenticationNode" "IotRegistrationNode" "KbaCreateNode" "KbaDecisionNode" "KbaVerifyNode" "LdapDecisionNode" "LoginCountDecisionNode" "MessageNode" "MetadataNode" "MeterNode" "ModifyAuthLevelNode" "OneTimePasswordCollectorDecisionNode" "OneTimePasswordGeneratorNode" "OneTimePasswordSmsSenderNode" "OneTimePasswordSmtpSenderNode" "PageNode" "PasswordCollectorNode" "PatchObjectNode" "PersistentCookieDecisionNode" "PollingWaitNode" "ProfileCompletenessDecisionNode" "ProvisionDynamicAccountNode" "ProvisionIdmAccountNode" "PushAuthenticationSenderNode" "PushResultVerifierNode" "QueryFilterDecisionNode" "RecoveryCodeCollectorDecisionNode" "RecoveryCodeDisplayNode" "RegisterLogoutWebhookNode" "RemoveSessionPropertiesNode" "RequiredAttributesDecisionNode" "RetryLimitDecisionNode" "ScriptedDecisionNode" "SelectIdPNode" "SessionDataNode" "SetFailureUrlNode" "SetPersistentCookieNode" "SetSessionPropertiesNode" "SetSuccessUrlNode" "SocialFacebookNode" "SocialGoogleNode" "SocialNode" "SocialOAuthIgnoreProfileNode" "SocialOpenIdConnectNode" "SocialProviderHandlerNode" "TermsAndConditionsDecisionNode" "TimeSinceDecisionNode" "TimerStartNode" "TimerStopNode" "UsernameCollectorNode" "ValidatedPasswordNode" "ValidatedUsernameNode" "WebAuthnAuthenticationNode" "WebAuthnDeviceStorageNode" "WebAuthnRegistrationNode" "ZeroPageLoginNode" "product-CertificateCollectorNode" "product-CertificateUserExtractorNode" "product-CertificateValidationNode" "product-KerberosNode" "product-ReCaptchaNode" "product-Saml2Node" "product-WriteFederationInformationNode" )
+OOTBNODETYPES=(${OOTBNODETYPES_7[@]})
+CONTAINERNODETYPES=( "PageNode" "CustomPageNode" )
+SCRIPTNODETYPES=( "ScriptedDecisionNode" "ClientScriptNode" "CustomScriptNode" )
+EMAILTEMPLATENODETYPES=( "EmailSuspendNode" "EmailTemplateNode" )
 AM=""
+COOKIES="cookies.txt"
 REALM=""
 AMADMIN=""
 AMPASSWD=""
 AMSESSION=""
+ACCESS_TOKEN=""
 FILE=""
+VERSION=""
+DEPLOYMENT="Classic"
 ORIGIN_CMD="md5<<<\$AM\$REALM"
-if ! [ -x "$(command -v md5)" ]; then
-    if [ -x "$(command -v md5sum)" ]; then
+SHA256SUM_CMD='shasum -a 256'
+
+checkUtils(){
+    if ! [ -x "$(command -v md5)" ]; then
+        if ! [ -x "$(command -v md5sum)" ]; then
+            1>&2 echo 'Error: neither md5 nor md5sum is installed.'
+            exit 1
+        fi
         ORIGIN_CMD="md5sum<<<\$AM\$REALM"
-    else
-        1>&2 echo 'Error: neither md5 nor md5sum is installed.'
     fi
-fi
+    if ! [ -x "$(command -v jq)" ]; then
+        1>&2 echo 'Error: jq is required but not installed.'
+        exit 1
+    fi
+    if ! [ -x "$(command -v shasum)" ]; then
+        if ! [ -x "$(command -v sha256sum)" ]; then
+            echo >&2 "Error: neither shasum nor sha256sum installed."
+            exit 1
+        fi
+        HA256SUM_CMD='sha256sum'
+    fi
+    if ! [ -x "$(command -v xxd)" ]; then
+        echo >&2 "Error: xxd is required but not installed."
+        exit 1
+    fi
+}
+checkUtils
+
+CLIENT_ID="idmAdminClient"
+CLIENT_PASSWORD="doesnotmatter"
+SCOPES="fr:idm:*"
+RESPONSE_TYPE="code"
 
 function login {
+    NAME=$(echo "$AM-$REALM" | sed 's/^http[s]:\/\///g;s/\/.*-//g;s/\./_/g;s/\//-/g')
+    COOKIES=".cookies-$NAME.txt"
     AREALM=$REALM
     shopt -s nocasematch
     if [[ $AMADMIN == "amadmin" ]]; then
         AREALM=""
     fi
     shopt -u nocasematch
-    AMSESSION=$(curl -s -k -X POST -H "Accept-API-Version:resource=1.0" -H "X-Requested-With:XmlHttpRequest" -H "X-OpenAM-Username:$AMADMIN" -H "X-OpenAM-Password:$AMPASSWD" $AM/json${AREALM}/authenticate | jq .tokenId | sed -e 's/\"//g')
-    if [[ -z $AMSESSION ]]; then
-        1>&2 echo "Failed to sign in to AM. Check AM URL, realm, and credentials."
+    RESPONSE=$(curl -j -c "${COOKIES}" -s -k -i -X POST -H "Accept-API-Version:resource=2.0,protocol=1.0" -H "X-Requested-With:XmlHttpRequest" -H "X-OpenAM-Username:${AMADMIN}" -H "X-OpenAM-Password:${AMPASSWD}" "$AM/json/authenticate")
+    if [[ $RESPONSE = "" ]]; then
+        echo 'Error: Check hostname is valid.'
         exit -1
+    else
+        if [ "null" == "$(echo "$RESPONSE" | sed -n -e 's/^.*{"/{"/p' | jq .tokenId)" ]; then
+                1>&2 echo "Error: $(echo "$RESPONSE" | sed -n -e 's/^.*{"/{"/p' | jq -r '.errorMessage')"
+                exit -1
+        else
+                AMSESSION=$(echo "$RESPONSE" | sed -n -e 's/^.*{"/{"/p' | jq .tokenId | sed -e 's/\"//g')
+        fi
+    fi
+    setVersion
+    setDeployment
+    # if cloud or forgeops deployment, also get an IDM session
+    if [ "$DEPLOYMENT" == "Cloud" ] || [ "$DEPLOYMENT" == "ForgeOps" ] ; then
+        getAccessToken
     fi
 }
 
+getAccessToken() {
+	VERIFIER=`LC_CTYPE=C && LANG=C && cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 50 | head -n 1`
+	CHALLENGE=`echo -n $VERIFIER | $SHA256SUM_CMD | cut -d " " -f 1 | xxd -r -p | base64 | tr / _ | tr + - | tr -d =`
+
+    AM_AUTHORIZE=$AM/oauth2/authorize
+    AM_ACCESS_TOKEN=$AM/oauth2/access_token
+    BASE_HOST="${AM%/*}"
+    REDIRECT_URL=$BASE_HOST/platform/appAuthHelperRedirect.html
+
+    CODE=`curl -b "${COOKIES}" -s -k -X POST -H "Content-Type: application/x-www-form-urlencoded" -d "redirect_uri=$REDIRECT_URL&scope=$SCOPES&response_type=$RESPONSE_TYPE&client_id=$CLIENT_ID&csrf=$AMSESSION&decision=allow&code_challenge=$CHALLENGE&code_challenge_method=S256" "$AM_AUTHORIZE" -D - | grep "code=" | cut -d '=' -f2 | cut -d '&' -f1`
+    # 1>&2 echo "authz code: $CODE"
+
+    # FIDC uses a different oauth2 client config than forgeops
+    if [ "$DEPLOYMENT" == "Cloud" ] ; then
+        TOKENS=`curl -s -X POST --user "$CLIENT_ID:$CLIENT_PASSWORD" -H "Cache-Control: no-cache" -d "grant_type=authorization_code&code=$CODE&redirect_uri=$REDIRECT_URL&code_verifier=$VERIFIER" -k "$AM_ACCESS_TOKEN" | jq .`
+    elif [ "$DEPLOYMENT" == "ForgeOps" ] ; then
+        TOKENS=`curl -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" -d "client_id=$CLIENT_ID&grant_type=authorization_code&code=$CODE&redirect_uri=$REDIRECT_URL&code_verifier=$VERIFIER" -k "$AM_ACCESS_TOKEN" | jq .`
+    fi
+    ACCESS_TOKEN=`echo $TOKENS | jq -r .access_token`
+    # 1>&2 echo "access token: $ACCESS_TOKEN"
+
+    JVERSION=`curl -s -X GET -H "Authorization: Bearer $ACCESS_TOKEN" -k "$BASE_HOST/openidm/info/version"`
+    IDM_VERSION=`echo $JVERSION | jq -r .productVersion`
+    IDM_BUILD_DATE=`echo $JVERSION | jq -r .productBuildDate`
+    IDM_REVISION=`echo $JVERSION | jq -r .productRevision`
+    IDM_VERSION_STRING="ForgeRock Identity Management $IDM_VERSION Build $IDM_REVISION ($IDM_BUILD_DATE)"
+    1>&2 echo "Connected to $IDM_VERSION_STRING"
+}
+
+function setDeployment {
+    if [[ $VERSION == *"IDCLOUD"* ]] || [[ $VERSION == *"PAAS"* ]]; then
+        DEPLOYMENT="Cloud"
+        1>&2 echo "ForgeRock Identity Cloud detected."
+    elif [[ $VERSION == *"SNAPSHOT"* ]]; then
+        DEPLOYMENT="ForgeOps"
+        CLIENT_ID="idm-admin-ui"
+        1>&2 echo "ForgeOps deployment detected."
+    else
+        DEPLOYMENT="Classic"
+        1>&2 echo "Classic deployment detected."
+    fi
+}
+
+function setVersion {
+    JVERSION=$(curl -b "${COOKIES}" -s -k -X GET -H "Accept-API-Version:resource=1.0" $AM/json${REALM}/serverinfo/version)
+    VERSION=$(echo $JVERSION| jq -r  '.version')
+    FULLVER=$(echo $JVERSION| jq -r  '.fullVersion')
+    1>&2 echo "Connected to $FULLVER"
+    if [ -z "$OVERSION" ] ; then
+        VERKEY=$(echo "$VERSION" | sed -e 's/\./_/g' | cut -c1-5)
+        VERKEY1=$(echo "$VERKEY" | cut -c1-1)
+        VARNAME="OOTBNODETYPES_$VERKEY"
+        eval OOTBNODETYPES=(\${$VARNAME[@]})
+        if [ -z "$OOTBNODETYPES" ] ; then
+            VERKEY=$(echo "$VERKEY" | cut -c1-3)
+            VARNAME="OOTBNODETYPES_$VERKEY"
+            eval OOTBNODETYPES=(\${$VARNAME[@]})
+            if [ -z "$OOTBNODETYPES" ] ; then
+                VERKEY=$(echo "$VERKEY" | cut -c1-1)
+                VARNAME="OOTBNODETYPES_$VERKEY"
+                eval OOTBNODETYPES=(\${$VARNAME[@]})
+            fi
+        fi
+    fi
+    overrideVersion
+}
+
+function overrideVersion {
+    if [ -n "$OVERSION" ] ; then
+        1>&2 echo "Overriding version to $OVERSION"
+        VERKEY=$(echo "$OVERSION" | sed -e 's/\./_/g' | cut -c1-5)
+        VERKEY1=$(echo "$VERKEY" | cut -c1-1)
+        VARNAME="OOTBNODETYPES_$VERKEY"
+        eval OOTBNODETYPES=(\${$VARNAME[@]})
+        if [ -z "$OOTBNODETYPES" ] ; then
+            VERKEY=$(echo "$VERKEY" | cut -c1-3)
+            VARNAME="OOTBNODETYPES_$VERKEY"
+            eval OOTBNODETYPES=(\${$VARNAME[@]})
+            if [ -z "$OOTBNODETYPES" ] ; then
+                VERKEY=$(echo "$VERKEY" | cut -c1-1)
+                VARNAME="OOTBNODETYPES_$VERKEY"
+                eval OOTBNODETYPES=(\${$VARNAME[@]})
+            fi
+        fi
+    fi
+}
 
 # the admin ui leaves orphaned node instances after deleting a tree and when using the APIs it is very easy to
 # forget to clean-up everything as well. the prune function will iterate through all node types, and then through
@@ -67,7 +183,7 @@ function prune {
 
     #get all the trees and their node references
     #these are all the nodes that are actively in use. every node instance we find in the next step, that is not in this list, is orphaned and will be removed/pruned.
-    JTREES=$(curl -s -k -X GET --data "{}" -H "Accept-API-Version:resource=1.0" -H "iPlanetDirectoryPro:$AMSESSION" $AM/json${REALM}/realm-config/authentication/authenticationtrees/trees?_queryFilter=true)
+    JTREES=$(curl -b "${COOKIES}" -s -k -X GET -H "Accept-API-Version:resource=1.0" $AM/json${REALM}/realm-config/authentication/authenticationtrees/trees?_queryFilter=true)
     ACTIVENODES=($(echo $JTREES| jq -r  '.result|.[]|.nodes|keys|.[]'))
 
     #do any of the active nodes have inner nodes?
@@ -77,7 +193,7 @@ function prune {
 
         #get the inner nodes for each container node
         for CONTAINERNODE in "${CONTAINERNODES[@]}" ; do
-            JINNERNODES=$(curl -s -k -X GET -H "Accept-API-Version:resource=1.0" -H "X-Requested-With:XmlHttpRequest" -H "iPlanetDirectoryPro:$AMSESSION" $AM/json${REALM}/realm-config/authentication/authenticationtrees/nodes/$CONTAINERNODETYPE/$CONTAINERNODE)
+            JINNERNODES=$(curl -b "${COOKIES}" -s -k -X GET -H "Accept-API-Version:resource=1.0" -H "X-Requested-With:XmlHttpRequest" $AM/json${REALM}/realm-config/authentication/authenticationtrees/nodes/$CONTAINERNODETYPE/$CONTAINERNODE)
             local ERROR="$(echo $JINNERNODES | jq -r '.code')"
             if [ "$ERROR" == "null" ] ; then
                 INNERNODES+=($(echo $JINNERNODES | jq -r '.nodes|.[]|._id'))
@@ -92,7 +208,7 @@ function prune {
     ACTIVENODES+=(${INNERNODES[@]})
 
     #get all the node instances
-    JNODES=$(curl -s -k -X POST --data "{}" -H "Accept-API-Version:resource=1.0" -H "iPlanetDirectoryPro:$AMSESSION" -H  "Content-Type:application/json" $AM/json${REALM}/realm-config/authentication/authenticationtrees/nodes?_action=nextdescendents)
+    JNODES=$(curl -b "${COOKIES}" -s -k -X POST --data "{}" -H "Accept-API-Version:resource=1.0" -H  "Content-Type:application/json" $AM/json${REALM}/realm-config/authentication/authenticationtrees/nodes?_action=nextdescendents)
     NODES=($(echo $JNODES| jq -r  '.result|.[]|._id'))
     ORPHANEDNODES=()
 
@@ -126,7 +242,7 @@ function prune {
             do
                 1>&2 echo -n "."
                 TYPE=$(echo $JNODES | jq -r --arg id "$NODE" '.result|.[]|select(._id==$id)|._type|._id')
-                RESULT=$(curl -s -k -X DELETE -H "Accept-API-Version:resource=1.0" -H "X-Requested-With:XmlHttpRequest" -H "iPlanetDirectoryPro:$AMSESSION" $AM/json${REALM}/realm-config/authentication/authenticationtrees/nodes/$TYPE/$NODE)
+                RESULT=$(curl -b "${COOKIES}" -s -k -X DELETE -H "Accept-API-Version:resource=1.0" -H "X-Requested-With:XmlHttpRequest" $AM/json${REALM}/realm-config/authentication/authenticationtrees/nodes/$TYPE/$NODE)
             done
             1>&2 echo
             1>&2 echo "Done."
@@ -143,92 +259,317 @@ function prune {
 
 
 function listTrees {
-    local JTREES=$(curl -s -k -X GET --data "{}" -H "Accept-API-Version:resource=1.0" -H "iPlanetDirectoryPro:$AMSESSION" $AM/json${REALM}/realm-config/authentication/authenticationtrees/trees?_queryFilter=true)
+    local JTREES=$(curl -b "${COOKIES}" -s -k -X GET -H "Accept-API-Version:resource=1.0" $AM/json${REALM}/realm-config/authentication/authenticationtrees/trees?_queryFilter=true)
     local TREES=($(echo $JTREES| jq -r '.result|.[]|._id'))
-    for TREE in "${TREES[@]}" ; do
-        if [[ -z $FILE ]] ; then
-            echo $TREE
-        else
-            echo $TREE >>$FILE
+    if [[ -z $FILE ]] ; then
+        CUSTOM=false
+        for TREE in "${TREES[@]}" ; do
+            local JTREE=$(echo $JTREES| jq -r --arg id "$TREE" '.result|.[]|select(._id==$id)')
+            if isCustomTree "$JTREE" ; then
+                echo "- $TREE"
+            else
+                echo "* $TREE"
+                CUSTOM=true
+            fi
+        done;
+        if [ "$CUSTOM" == "true" ] ; then
+            echo
+            echo "(*) Tree contains custom node(s)."
         fi
-    done;
+    else
+        for TREE in "${TREES[@]}" ; do
+            echo $TREE >>"$FILE"
+        done;
+    fi
 }
 
 
+# isCustomTree {json}"
+function isCustomTree {
+    local TREE=$1
+    local NODES=$(echo $TREE| jq -r  '.nodes | keys | .[]')
+    for each in $NODES ; do
+        local TYPE=$(echo $TREE | jq -r --arg NODE "$each" '.nodes | .[$NODE] | .nodeType')
+        if ! itemIn "$TYPE" "${OOTBNODETYPES[@]}" ; then
+            return 1
+        fi
+        local NODE=$(curl -b "${COOKIES}" -s -k -X GET -H "Accept-API-Version:resource=1.0" -H "X-Requested-With:XmlHttpRequest" $AM/json${REALM}/realm-config/authentication/authenticationtrees/nodes/$TYPE/$each | jq '. | del (._rev)')
+
+        # inner nodes
+        # Currently the only node type containing inner nodes is "PageNode". Additional types can be defined in CONTAINERNODETYPES.
+        if itemIn "$TYPE" "${CONTAINERNODETYPES[@]}" ; then
+            local PAGES=$(echo $NODE | jq -r '.nodes | keys | .[]')
+            for page in $PAGES; do
+                local PAGENODETYPE=$(echo $NODE | jq -r --arg IND "$page" '.nodes[($IND|tonumber)] | .nodeType')
+                if ! itemIn "$PAGENODETYPE" "${OOTBNODETYPES[@]}" ; then
+                    return 1
+                fi
+            done
+        fi
+    done
+    return 0
+}
+
+
+# itemIn "value" "${array[@]}" 
+function itemIn () {
+    found=`echo "${@:2}" | grep -c $1`
+    return $(( found * -1 + 1 ))
+}
+
+
+# isMultiTree <json>
+# determine if json document is a single or multi tree export
+function isMultiTree {
+    cat authn_all.json | jq -r 'keys'
+    return 0
+    return 1
+}
+
+function describeAllTrees {
+    if [[ -z $AM ]] ; then
+        local FILES=($(ls -1tr *.json))
+        for TREEFILE in "${FILES[@]}" ; do
+            describe "$(cat $TREEFILE)"
+        done;
+    else
+        login
+        local JTREES=$(curl -b "${COOKIES}" -s -k -X GET -H "Accept-API-Version:resource=1.0" $AM/json${REALM}/realm-config/authentication/authenticationtrees/trees?_queryFilter=true)
+        # local TREES=($(echo $JTREES| jq -r  '.result|.[]|._id'))
+        local TREES=()
+        #local TREES=($(echo $JTREES| jq -r  '.result|.[]|._id' | sed -e 's/^/"/g' -e 's/$/"/g' | tr '\n' ' '))
+        # using while loop with herestring to create the TREES array - this is needed for handling trees with spaces in names
+        while read -r line ; do
+            TREES+=( "${line}" )
+        done <<< "$(echo $JTREES| jq '.result|.[]|._id')"
+
+        for TREE in "${TREES[@]}" ; do
+            describe "$(exportTree "$TREE" true)"
+        done;
+    fi
+}
+
+function describeTree {
+    if [[ -z $AM ]] ; then
+        overrideVersion
+        describe "$(cat $FILE)"
+    else
+        login
+        describe "$(exportTree "$TREENAME" true)"
+    fi
+}
+
+function describe {
+    JTREE="$1"
+    TREE=$(echo $JTREE | jq -r '.tree._id')
+    RAWNODES=($(echo $JTREE | jq -r  '.["nodes","innernodes"]|.[]|._type|._id' | sort -s))
+    NODES=($(echo $JTREE | jq -r  '.["nodes","innernodes"]|.[]|._type|._id' | sort -u))
+    # the @base64 is ugly but the only way I found to make the array work with spaces in the script name
+    SCRIPTS=($(echo $JTREE | jq -r '.scripts|.[]|.name|@base64' | sort -u))
+    DEP_TREES=($(echo $JTREE | jq -r '.nodes|keys[] as $key|select(.[$key]._type._id=="InnerTreeEvaluatorNode")|.[$key]|.tree'))
+    echo Tree: $TREE
+    echo -n =====
+    for ((i = 0; i < (`echo $TREE | wc -c`); i++)) ; do
+        echo -n "="
+    done;
+    echo
+    echo
+    echo Nodes:
+    echo -----
+    if [ ${#NODES[@]} -eq 0 ]; then
+        echo "None"
+    else
+        CUSTOM=false
+        for NODE in "${NODES[@]}" ; do
+            if itemIn "$NODE" "${OOTBNODETYPES[@]}" ; then
+                echo "- $(grep -o $NODE <<< ${RAWNODES[@]} | wc -l  | xargs) $NODE"
+            else
+                echo "* $(grep -o $NODE <<< ${RAWNODES[@]} | wc -l  | xargs) $NODE"
+                CUSTOM=true
+            fi
+        done;
+        if [ "$CUSTOM" == "true" ] ; then
+            echo
+            echo "(*) Custom node."
+        fi
+    fi
+    echo
+    echo Scripts:
+    echo -------
+    if [ ${#SCRIPTS[@]} -eq 0 ]; then
+        echo None
+    else
+        for SCRIPT in "${SCRIPTS[@]}" ; do
+            echo "- $(echo $SCRIPT | base64 -d)"
+        done;
+    fi
+    echo
+    echo Dependencies:
+    echo ------------
+        if [ ${#DEP_TREES[@]} -eq 0 ]; then
+        echo None
+    else
+        for DEP_TREE in "${DEP_TREES[@]}" ; do
+            echo "- $DEP_TREE"
+        done;
+    fi
+}
+
 function exportAllTrees {
-    local JTREES=$(curl -s -k -X GET --data "{}" -H "Accept-API-Version:resource=1.0" -H "iPlanetDirectoryPro:$AMSESSION" $AM/json${REALM}/realm-config/authentication/authenticationtrees/trees?_queryFilter=true)
-    local TREES=($(echo $JTREES| jq -r  '.result|.[]|._id'))
+    local JTREES=$(curl -b "${COOKIES}" -s -k -X GET -H "Accept-API-Version:resource=1.0" $AM/json${REALM}/realm-config/authentication/authenticationtrees/trees?_queryFilter=true)
+    local TREES=()
+    # local TREES=($(echo $JTREES| jq -r  '.result|.[]|._id'))
+    # using while loop with herestring to create the TREES array - this is needed for handling trees with spaces in names
+    while read -r line ; do
+        TREES+=( "${line}" )
+    done <<< "$(echo $JTREES| jq '.result|.[]|._id')"
     local EXPORTS="{ \"trees\":{} }"
     for TREE in "${TREES[@]}" ; do
         local JTREE=`exportTree "$TREE" "noFile"`
-        EXPORTS=$(echo $EXPORTS "{ \"trees\": { \"$TREE\":$JTREE } }" | jq -s 'reduce .[] as $item ({}; . * $item)')
+        EXPORTS=$(echo $EXPORTS "{ \"trees\": { \"${TREE//\"}\":$JTREE } }" | jq -s 'reduce .[] as $item ({}; . * $item)')
     done;
 
     if [[ -z $FILE ]]; then
         echo $EXPORTS | jq .
     else
-        echo "" > $FILE
-        echo $EXPORTS | jq . >>$FILE
+        echo "" > "$FILE"
+        echo $EXPORTS | jq . >>"$FILE"
     fi
 }
 
+function exportTreesSeparately {
+    local FILEPREFIX=$FILE
+    echo "Export all trees to files"
+    local JTREES=$(curl -b "${COOKIES}" -s -k -X GET -H "Accept-API-Version:resource=1.0" $AM/json${REALM}/realm-config/authentication/authenticationtrees/trees?_queryFilter=true)
+    local TREES=()
+    #local TREES=($(echo $JTREES| jq -r  '.result|.[]|._id' | sed -e 's/^/"/g' -e 's/$/"/g' | tr '\n' ' '))
+    # using while loop with herestring to create the TREES array - this is needed for handling trees with spaces in names
+    while read -r line ; do
+        TREES+=( "${line}" )
+    done <<< "$(echo $JTREES| jq '.result|.[]|._id')"
+    local EXPORTS="{ \"trees\":{} }"
+    for TREE in "${TREES[@]}" ; do
+        FILE="${FILEPREFIX}${TREE//\"}.json"
+        if [[ -n $FILE ]]; then
+            echo "" > "$FILE"
+        fi
+        local JTREE=`exportTree "${TREE}"`
+    done;
+}
+
+function importTreesSeparately {
+    echo "Import all trees in the current directory"
+    local FILES=($(ls -1tr *.json))
+    local JTREES=$'{\n  \"trees\": {\n    \"'
+    for TREEFILE in "${FILES[@]}" ; do
+        local TREENAME=${TREEFILE%.*}
+        JTREES=$JTREES$TREENAME$'\":\n'
+        JTREES=$JTREES$(cat $TREEFILE)$',\n    \"'
+    done;
+    # Remove the comma from the end of the last file import and close the JSON
+    JTREES=${JTREES%???????}
+    jtrees=$JTREES$'  }\n}'
+    # get list of already installed trees for dependency and conflict resolution
+    local jinstalled=$(curl -b "${COOKIES}" -b "${COOKIES}" -s -k -X GET -H "Accept-API-Version:resource=1.0" $AM/json${REALM}/realm-config/authentication/authenticationtrees/trees?_queryFilter=true)
+    # local installed=($(echo $jinstalled| jq -r  '.result|.[]|._id'))
+    local installed=()
+    # using while loop with herestring to create the installed array - this is needed for handling trees with spaces in names
+    while read -r line ; do
+        installed+=( "${line}" )
+    done <<< "$(echo $jinstalled| jq '.result|.[]|._id')"
+
+    local resolved=()
+    local unresolved=()
+    resolve
+    for tree in ${resolved[@]} ; do
+        local jtree=$(echo $jtrees | jq --arg tree $tree '.trees[$tree]')
+        echo $jtree | importTree "$tree" "noFile"
+    done
+}
 
 # exportTree <tree> <flag>
 # where tree is the name of tree to export and if flag is set to anything, stdout will be used for output even if $FILE is set.
 function exportTree {
-    1>&2 echo -n "Exporting $1"
-    local TREE=$(curl -f -s -k -X GET -H "Accept-API-Version:resource=1.0" -H "X-Requested-With:XmlHttpRequest" -H "iPlanetDirectoryPro:$AMSESSION" $AM/json${REALM}/realm-config/authentication/authenticationtrees/trees/$1 | jq -c '. | del (._rev)')
+    local TREENAME=${1//\"} # remove double quotes which were inserted
+    TREENAMEFORURL=$(echo "$TREENAME" | sed 's/ /%20/g') # replace any spaces with %20
+    local TREE=$(curl -b "${COOKIES}" -f -s -k -X GET -H "Accept-API-Version:resource=1.0" -H "X-Requested-With:XmlHttpRequest" "$AM/json${REALM}/realm-config/authentication/authenticationtrees/trees/$TREENAMEFORURL" | jq -c '. | del (._rev)')
     if [ -z "$TREE" ]; then
-        1>&2 echo "Failed to find tree: $1"
+        1>&2 echo "Failed to find tree: $TREENAME"
         exit -1
     fi
-    1>&2 echo -n "."
+    1>&2 echo -n "$TREENAME."
 
     local NODES=$(echo $TREE| jq -r  '.nodes | keys | .[]')
 
     local ORIGIN=$(eval $ORIGIN_CMD)
 
-    local EXPORTS="{ \"origin\":\"$ORIGIN\", \"innernodes\":{}, \"nodes\":{}, \"scripts\":{} }"
+    local EXPORTS="{ \"origin\":\"$ORIGIN\", \"innernodes\":{}, \"nodes\":{}, \"scripts\":{}, \"emailTemplates\":{} }"
 
     for each in $NODES ; do
         local TYPE=$(echo $TREE | jq -r --arg NODE "$each" '.nodes | .[$NODE] | .nodeType')
-        local NODE=$(curl -s -k -X GET -H "Accept-API-Version:resource=1.0" -H "X-Requested-With:XmlHttpRequest" -H "iPlanetDirectoryPro:$AMSESSION" $AM/json${REALM}/realm-config/authentication/authenticationtrees/nodes/$TYPE/$each | jq '. | del (._rev)')
+        local NODE=$(curl -b "${COOKIES}" -s -k -X GET -H "Accept-API-Version:resource=1.0" -H "X-Requested-With:XmlHttpRequest" $AM/json${REALM}/realm-config/authentication/authenticationtrees/nodes/$TYPE/$each | jq '. | del (._rev)')
         1>&2 echo -n "."
         EXPORTS=$(echo $EXPORTS "{ \"nodes\": { \"$each\": $NODE } }" | jq -s 'reduce .[] as $item ({}; . * $item)')
-        # export Page Nodes
-        if [ "$TYPE" == "PageNode" ]; then
+
+        # Export inner nodes
+        # Currently the only node type containing inner nodes is "PageNode". Additional types can be defined in CONTAINERNODETYPES.
+        if itemIn "$TYPE" "${CONTAINERNODETYPES[@]}" ; then
             local PAGES=$(echo $NODE | jq -r '.nodes | keys | .[]')
             for page in $PAGES; do
                 local PAGENODEID=$(echo $NODE | jq -r --arg IND "$page" '.nodes[($IND|tonumber)] | ._id')
                 local PAGENODETYPE=$(echo $NODE | jq -r --arg IND "$page" '.nodes[($IND|tonumber)] | .nodeType')
-                local PAGENODE=$(curl -s -k -X GET -H "Accept-API-Version:resource=1.0" -H "X-Requested-With:XmlHttpRequest" -H "iPlanetDirectoryPro:$AMSESSION" $AM/json${REALM}/realm-config/authentication/authenticationtrees/nodes/$PAGENODETYPE/$PAGENODEID | jq '. | del (._rev)')
+                local PAGENODE=$(curl -b "${COOKIES}" -s -k -X GET -H "Accept-API-Version:resource=1.0" -H "X-Requested-With:XmlHttpRequest" $AM/json${REALM}/realm-config/authentication/authenticationtrees/nodes/$PAGENODETYPE/$PAGENODEID | jq '. | del (._rev)')
                 1>&2 echo -n "."
                 EXPORTS=$(echo $EXPORTS "{ \"innernodes\": { \"$PAGENODEID\": $PAGENODE } }" | jq -s 'reduce .[] as $item ({}; . * $item)')
+                
+                # Export scripts inside page nodes
+                if itemIn "$PAGENODETYPE" "${SCRIPTNODETYPES[@]}" ; then
+                    local SCRIPTID=$(echo $PAGENODE | jq -r '.script')
+                    local SCRIPT=$(curl -b "${COOKIES}" -s -k -X GET -H "Accept-API-Version:resource=1.0" -H "X-Requested-With:XmlHttpRequest" $AM/json${REALM}/scripts/$SCRIPTID | jq '. | del (._rev)')
+                    EXPORTS=$(echo $EXPORTS "{ \"scripts\": { \"$SCRIPTID\": $SCRIPT } }" | jq -s 'reduce .[] as $item ({}; . * $item)')
+                fi
+
+                # If this is FIDC or ForgeOps, export email templates referenced by nodes in this page node
+                #
+                # There is currently no node that produces a callback and references an email template. 
+                # But if somebody were to create such a node and were to follow the same implementation 
+                # and property naming pattern as the existing email template referencing nodes, then 
+                # this code will handle such a node properly.
+                if [ "$DEPLOYMENT" == "Cloud" ] || [ "$DEPLOYMENT" == "ForgeOps" ] ; then
+                    if itemIn "$PAGENODETYPE" "${EMAILTEMPLATENODETYPES[@]}" ; then
+                        local TEMPLATEID=$(echo $PAGENODE | jq -r '.emailTemplateName')
+                        local TEMPLATE=$(curl -s -k -X GET -H "Authorization: Bearer $ACCESS_TOKEN" $BASE_HOST/openidm/config/emailTemplate/$TEMPLATEID | jq '. | del (._rev)')
+                        1>&2 echo -n "."
+                        EXPORTS=$(echo $EXPORTS "{ \"emailTemplates\": { \"$TEMPLATEID\": $TEMPLATE } }" | jq -s 'reduce .[] as $item ({}; . * $item)')
+                    fi
+                fi
             done
         fi
-        # Export Scripts
-        if [ "$TYPE" == "ScriptedDecisionNode" ]; then
+        # Export scripts referenced by nodes in this tree
+        if itemIn "$TYPE" "${SCRIPTNODETYPES[@]}" ; then
             local SCRIPTID=$(echo $NODE | jq -r '.script')
-            local SCRIPT=$(curl -s -k -X GET -H "Accept-API-Version:resource=1.0" -H "X-Requested-With:XmlHttpRequest" -H "iPlanetDirectoryPro:$AMSESSION" $AM/json${REALM}/scripts/$SCRIPTID | jq '. | del (._rev)')
+            local SCRIPT=$(curl -b "${COOKIES}" -s -k -X GET -H "Accept-API-Version:resource=1.0" -H "X-Requested-With:XmlHttpRequest" $AM/json${REALM}/scripts/$SCRIPTID | jq '. | del (._rev)')
             1>&2 echo -n "."
             EXPORTS=$(echo $EXPORTS "{ \"scripts\": { \"$SCRIPTID\": $SCRIPT } }" | jq -s 'reduce .[] as $item ({}; . * $item)')
+        fi
+        # If this is FIDC or ForgeOps, export email templates referenced by nodes in this tree
+        if [ "$DEPLOYMENT" == "Cloud" ] || [ "$DEPLOYMENT" == "ForgeOps" ] ; then
+            if itemIn "$TYPE" "${EMAILTEMPLATENODETYPES[@]}" ; then
+                local TEMPLATEID=$(echo $NODE | jq -r '.emailTemplateName')
+                local TEMPLATE=$(curl -s -k -X GET -H "Authorization: Bearer $ACCESS_TOKEN" $BASE_HOST/openidm/config/emailTemplate/$TEMPLATEID | jq '. | del (._rev)')
+                1>&2 echo -n "."
+                EXPORTS=$(echo $EXPORTS "{ \"emailTemplates\": { \"$TEMPLATEID\": $TEMPLATE } }" | jq -s 'reduce .[] as $item ({}; . * $item)')
+            fi
         fi
     done
 
     EXPORTS=$(echo ${EXPORTS} "{ \"tree\":${TREE} }" | jq -s 'reduce .[] as $item ({}; . * $item)')
+    1>&2 echo "."
     if [[ -z $FILE ]] || [[ -n $2 ]] ; then
         echo $EXPORTS | jq .
     else
-        echo $EXPORTS | jq . >>$FILE
+        echo $EXPORTS | jq . >>"$FILE"
     fi
-    1>&2 echo "."
-}
-
-
-function itemIn () {
-  local e
-  for e in "${@:2}"; do [[ "$e" == "$1" ]] && return 0; done
-  return 1
 }
 
 
@@ -294,7 +635,7 @@ function resolve {
         1>&2 echo -n "Determining installation order"
         trees=$(echo $jtrees | jq -r  '.trees | keys | .[]')
     fi
-    
+
     for tree in $trees ; do
         1>&2 echo -n "."
         # 1>&2 echo "resolving $tree"
@@ -325,14 +666,16 @@ function resolve {
             # unresolved=( "${unresolved[@]/$tree}" )
             # 1>&2 echo "  unresolved after: ${#unresolved[@]}"
         else
-            unresolved+=( $tree )
+            if ! itemIn "$tree" "${unresolved[@]}" ; then
+                unresolved+=( $tree )
+            fi
         fi
     done
     after=${#unresolved[@]}
     # 1>&2 echo "resolve: after=$after"
     if [[ -n $1 ]] && [[ $after -eq $before ]] ; then
-        1>&2 echo "Unresolvable dependencies. Aborting."
-        return 1
+        1>&2 echo
+        1>&2 echo "Trees with unresolvable dependencies: ${unresolved[@]}"
     elif [[ $after -gt 0 ]] ; then
         # 1>&2 echo "continuing dependency resolution."
         resolve $after
@@ -349,12 +692,17 @@ function importAllTrees {
     fi
 
     # get list of already installed trees for dependency and conflict resolution
-    local jinstalled=$(curl -s -k -X GET --data "{}" -H "Accept-API-Version:resource=1.0" -H "iPlanetDirectoryPro:$AMSESSION" $AM/json${REALM}/realm-config/authentication/authenticationtrees/trees?_queryFilter=true)
-    local installed=($(echo $jinstalled| jq -r  '.result|.[]|._id'))
+    local jinstalled=$(curl -b "${COOKIES}" -s -k -X GET --data "{}" -H "Accept-API-Version:resource=1.0" $AM/json${REALM}/realm-config/authentication/authenticationtrees/trees?_queryFilter=true)
+    # local installed=($(echo $jinstalled| jq -r  '.result|.[]|._id'))
+    local installed=()
+    # using while loop with herestring to create the installed array - this is needed for handling trees with spaces in names
+    while read -r line ; do
+        installed+=( "${line}" )
+    done <<< "$(echo $jinstalled| jq '.result|.[]|._id')"
+
     local resolved=()
     local unresolved=()
     resolve
-    1>&2 echo "."
 
     # local trees=$(echo $jtrees | jq -r  '.trees | keys | .[]')
     for tree in ${resolved[@]} ; do
@@ -367,14 +715,18 @@ function importAllTrees {
 # importTree <tree> <flag>
 # where tree is the name of tree to import and if flag is set to anything, stdin will be used for input even if $FILE is set.
 function importTree {
+
     if [[ -z $FILE ]] || [[ -n $2 ]] ; then
         TREES=$(</dev/stdin)
     else
-        TREES=$(<$FILE)
+        TREES=$(<"$FILE")
     fi
-    1>&2 echo -n "Importing $1."
+    1>&2 echo -n "$1."
+    
+    # initialize hashmap for re-UUID-ing
     HASHMAP="{}"
 
+    # determine origin. this will allow detection if importing into a new or the same environment the tree was exported from
     ORIGIN=$(eval $ORIGIN_CMD)
 
     # Scripts
@@ -385,7 +737,7 @@ function importTree {
         NAME=$(echo $SCRIPT | jq -r '.name')
         1>&2 echo -n "."
         #1>&2 echo "Importing script $NAME ($each)"
-        RESULT=$(curl -s -k -X PUT --data "$SCRIPT" -H "Accept-API-Version:resource=1.0" -H "Content-Type:application/json" -H "X-Requested-With:XmlHttpRequest" -H "iPlanetDirectoryPro:$AMSESSION" $AM/json${REALM}/scripts/$each)
+        RESULT=$(curl -b "${COOKIES}" -s -k -X PUT --data "$SCRIPT" -H "Accept-API-Version:resource=1.0" -H "Content-Type:application/json" -H "X-Requested-With:XmlHttpRequest" $AM/json${REALM}/scripts/$each)
         if [ "$(echo $RESULT | jq '._id')" == "null" ]; then
             1>&2 echo "Error importing script $NAME ($each): $RESULT"
             1>&2 echo "$SCRIPT"
@@ -393,18 +745,35 @@ function importTree {
         fi
     done
 
-    # Inner nodes
-    NODES=$(echo $TREES | jq -r  '.innernodes | keys | .[]')
-    for each in $NODES
+    # Email Templates
+    TEMPLATES=$(echo $TREES | jq -r  '.emailTemplates | keys | .[]')
+    for each in $TEMPLATES
     do
-        NODE=$(echo $TREES | jq --arg node $each '.innernodes[$node]')
-        TYPE=$(echo $NODE | jq -r '._type | ._id')
-        NEWUUID=$(uuidgen)
+        TEMPLATE=$(echo $TREES | jq --arg template $each '.emailTemplates[$template]')
+        TEMPLATEID=$(echo $TEMPLATE | jq -r '.name')
+        1>&2 echo -n "."
+        #1>&2 echo "Importing email template $each"
+        RESULT=$(curl -s -k -X PUT --data-raw "$TEMPLATE" -H "Authorization: Bearer $ACCESS_TOKEN" -H "Content-Type:application/json" $BASE_HOST/openidm/config/emailTemplate/$each)
+        if [ "$(echo $RESULT | jq '._id')" == "null" ]; then
+            1>&2 echo "Error importing email template $each: $RESULT"
+            1>&2 echo "$TEMPLATE"
+            #exit -1
+        fi
+    done
+
+    # Inner nodes
+    # Currently the only node type containing inner nodes is "PageNode". Additional types can be defined in CONTAINERNODETYPES.
+    INNERNODES=$(echo $TREES | jq -r  '.innernodes | keys | .[]')
+    for each in $INNERNODES
+    do
+        INNERNODE=$(echo $TREES | jq --arg node $each '.innernodes[$node]')
+        TYPE=$(echo $INNERNODE | jq -r '._type | ._id')
+        NEWUUID=$(echo `uuidgen` | awk '{print tolower($0)}')
         HASHMAP=$(echo $HASHMAP | jq --arg old $each --arg new $NEWUUID '.map[$old]=$new')
-        NEWNODE=$(echo $NODE | jq ._id=\"${NEWUUID}\")
+        NEWNODE=$(echo $INNERNODE | jq ._id=\"${NEWUUID}\")
         1>&2 echo -n "."
         #1>&2 echo "Importing inner node $TYPE ($NEWUUID)"
-        RESULT=$(curl -s -k -X PUT --data "$NEWNODE" -H "Accept-API-Version:resource=1.0" -H "Content-Type:application/json" -H "X-Requested-With:XmlHttpRequest" -H "iPlanetDirectoryPro:$AMSESSION" $AM/json${REALM}/realm-config/authentication/authenticationtrees/nodes/$TYPE/$NEWUUID)
+        RESULT=$(curl -b "${COOKIES}" -s -k -X PUT --data "$NEWNODE" -H "Accept-API-Version:resource=1.0" -H "Content-Type:application/json" -H "X-Requested-With:XmlHttpRequest" $AM/json${REALM}/realm-config/authentication/authenticationtrees/nodes/$TYPE/$NEWUUID)
         if [ "$(echo $RESULT | jq '._id')" == "null" ]; then
             1>&2 echo "Error importing inner node $TYPE ($NEWUUID): $RESULT"
             1>&2 echo "$NEWNODE"
@@ -412,12 +781,13 @@ function importTree {
         fi
     done
 
+    # Nodes
     NODES=$(echo $TREES | jq -r  '.nodes | keys | .[]')
     for each in $NODES
     do
         NODE=$(echo $TREES | jq --arg node $each '.nodes[$node]')
         TYPE=$(echo $NODE | jq -r '._type | ._id')
-        NEWUUID=$(uuidgen)
+        NEWUUID=$(echo `uuidgen` | awk '{print tolower($0)}')
         HASHMAP=$(echo $HASHMAP | jq --arg old $each --arg new $NEWUUID '.map[$old]=$new')
         NEWNODE=$(echo $NODE | jq ._id=\"${NEWUUID}\")
         # Need to re-UUID page nodes
@@ -431,7 +801,7 @@ function importTree {
         fi
         1>&2 echo -n "."
         #1>&2 echo "Importing node $TYPE ($NEWUUID)"
-        RESULT=$(curl -s -k -X PUT --data "$NEWNODE" -H "Accept-API-Version:resource=1.0" -H "Content-Type:application/json" -H "X-Requested-With:XmlHttpRequest" -H "iPlanetDirectoryPro:$AMSESSION" $AM/json${REALM}/realm-config/authentication/authenticationtrees/nodes/$TYPE/$NEWUUID)
+        RESULT=$(curl -b "${COOKIES}" -s -k -X PUT --data "$NEWNODE" -H "Accept-API-Version:resource=1.0" -H "Content-Type:application/json" -H "X-Requested-With:XmlHttpRequest" $AM/json${REALM}/realm-config/authentication/authenticationtrees/nodes/$TYPE/$NEWUUID)
         if [ "$(echo $RESULT | jq '._id')" == "null" ]; then
             1>&2 echo "Error importing node $TYPE ($NEWUUID): $RESULT"
             1>&2 echo "$NEWNODE"
@@ -439,9 +809,11 @@ function importTree {
         fi
     done
 
+    # Tree
     TREE=$(echo $TREES | jq -r  '.tree')
-    ID=$1
-    TREE=$(echo $TREE | jq --arg id $ID '._id=$id')
+    ID="$1"
+    IDFORURL=$(echo "$ID" | sed 's/ /%20/g') # replace any spaces with %20
+    TREE=$(echo $TREE | jq --arg id "$ID" '._id=$id')
     MAP=$(echo $HASHMAP| jq -r  '.map | keys | .[]' )
     for each in $MAP
     do
@@ -449,62 +821,309 @@ function importTree {
         TREE=$(echo $TREE | sed -e 's/'$each'/'$NEW'/g')
     done
     #1>&2 echo "Importing tree $1"
-    curl -s -k -X PUT --data "$TREE" -H "Accept-API-Version:resource=1.0" -H "Content-Type:application/json" -H "X-Requested-With:XmlHttpRequest" -H "iPlanetDirectoryPro:$AMSESSION" $AM/json${REALM}/realm-config/authentication/authenticationtrees/trees/$ID > /dev/null
+    curl -b "${COOKIES}" -s -k -X PUT --data "$TREE" -H "Accept-API-Version:resource=1.0" -H "Content-Type:application/json" -H "X-Requested-With:XmlHttpRequest" "$AM/json${REALM}/realm-config/authentication/authenticationtrees/trees/$IDFORURL" > /dev/null
     1>&2 echo "."
 }
 
 
 function usage {
-    1>&2 echo "Usage: $0 ( -e tree | -E | -i tree | I | -l | -P ) -h url -u user -p passwd [-r realm -f file]"
+    1>&2 echo "Usage: $0 ( -e | -E | -i | -I | -l | -d | -P ) [-h url -u user -p passwd [-r realm -f file -t tree] -o version]"
     1>&2 echo
-    1>&2 echo "Export/import/prune authentication trees."
+    1>&2 echo "Export/import/list/describe/prune authentication trees."
     1>&2 echo
     1>&2 echo "Actions/tasks (must specify only one):"
-    1>&2 echo "  -e tree   Export an authentication tree."
-    1>&2 echo "  -E        Export all the trees in a realm."
-    1>&2 echo "  -i tree   Import an authentication tree."
-    1>&2 echo "  -I        Import all the trees in a realm."
-    1>&2 echo "  -l        List all the trees in a realm."
-    1>&2 echo "  -P        Prune orphaned configuration artifacts left behind after deleting"
-    1>&2 echo "            authentication trees. You will be prompted before any destructive"
-    1>&2 echo "            operations are performed."
+    1>&2 echo "  -e         Export an authentication tree."
+    1>&2 echo "  -E         Export all the trees in a realm."
+    1>&2 echo "  -S         Export all the trees in a realm as separate files of the format"
+    1>&2 echo "             FileprefixTreename.json."
+    1>&2 echo "  -s         Import all the trees in the current directory"
+    1>&2 echo "  -i         Import an authentication tree."
+    1>&2 echo "  -I         Import all the trees in a realm."
+    1>&2 echo "  -d         If -h is supplied, describe the indicated tree in the realm,"
+    1>&2 echo "             otherwise describe the tree export file indicated by -f"
+    1>&2 echo "  -D         If -h is supplied, describe all the trees in the realm, otherwise"
+    1>&2 echo "             describe all tree export files in the current directory"
+    1>&2 echo "  -l         List all the trees in a realm."
+    1>&2 echo "  -P         Prune orphaned configuration artifacts left behind after deleting"
+    1>&2 echo "             authentication trees. You will be prompted before any destructive"
+    1>&2 echo "             operations are performed."
     1>&2 echo
-    1>&2 echo "Mandatory parameters:"
-    1>&2 echo "  -h url    Access Management host URL, e.g.: https://login.example.com/openam"
-    1>&2 echo "  -u user   Username to login with. Must be an admin user with appropriate"
-    1>&2 echo "            rights to manages authentication trees."
-    1>&2 echo "  -p passwd Password."
+    1>&2 echo "Parameters:"
+    1>&2 echo "  -h url     Access Management host URL, e.g.: https://login.example.com/openam"
+    1>&2 echo "  -u user    Username to login with. Must be an admin user with appropriate"
+    1>&2 echo "             rights to manages authentication trees."
+    1>&2 echo "  -p passwd  Password."
+    1>&2 echo "  -r realm   Realm. If not specified, the root realm '/' is assumed. Specify"
+    1>&2 echo "             realm as '/parent/child'. If using 'amadmin' as the user, login"
+    1>&2 echo "             will happen against the root realm but subsequent operations will"
+    1>&2 echo "             be performed in the realm specified. For all other users, login"
+    1>&2 echo "             and subsequent operations will occur against the realm specified."
+    1>&2 echo "  -f file    If supplied, export/list to and import from <file> instead of"
+    1>&2 echo "             stdout and stdin. For -S, use as file prefix"
+    1>&2 echo "  -t tree    Specify the name of an authentication tree. Mandatory in"
+    1>&2 echo "             combination with the following actions: -i, -e, -d."
+    1>&2 echo "  -o version Override version. Notation: \"X.Y.Z\" e.g. \"6.5.2\""
+    1>&2 echo "             Override detected version with any version. This is helpful in"
+    1>&2 echo "             order to check if trees in one environment would be compatible "
+    1>&2 echo "             running in another environment (e.g. in preparation of migrating"
+    1>&2 echo "             from on-prem to ForgeRock Identity Cloud PaaS. Only impacts these"
+    1>&2 echo "             actions: -d, -l."
     1>&2 echo
-    1>&2 echo "Optional parameters:"
-    1>&2 echo "  -r realm  Realm. If not specified, the root realm '/' is assumed. Specify"
-    1>&2 echo "            realm as '/parent/child'. If using 'amadmin' as the user, login will"
-    1>&2 echo "            happen against the root realm but subsequent operations will be"
-    1>&2 echo "            performed in the realm specified. For all other users, login and"
-    1>&2 echo "            subsequent operations will occur against the realm specified."
-    1>&2 echo "  -f file   If supplied, export/list to and import from <file> instead of stdout"
-    1>&2 echo "            and stdin."
+    1>&2 echo "Run $0 without any parameters to display this usage information."
     exit 0
 }
 
 
 TASK=""
-while getopts ":i:Ie:Elh:r:u:p:Pf:" arg; do
+while getopts "?iIeEldDh:r:u:p:Pf:sSt:o:" arg; do
     case $arg in
-        e) TASK="export"; TREENAME="$OPTARG";;
+        e) TASK="export";;
         E) TASK="exportAll";;
-        i) TASK="import"; TREENAME="$OPTARG";;
+        s) TASK="importTreesSeparately";;
+        S) TASK="exportTreesSeparately";;
+        i) TASK="import";;
         I) TASK="importAll";;
         l) TASK="list";;
+        d) TASK="describe";;
+        D) TASK="describeAll";;
         P) TASK="prune";;
         h) AM="$OPTARG";;
         r) if [ $OPTARG == "/" ]; then REALM=""; else REALM="$OPTARG"; fi;;
         u) AMADMIN="$OPTARG";;
         p) AMPASSWD="$OPTARG";;
         f) FILE="$OPTARG";;
+        t) TREENAME="$OPTARG";;
+        o) OVERSION="$OPTARG";;
         \?) echo "Unknown option: $arg"; usage;;
    esac
 done
 
+function checkParams {
+    if [ "$TASK" == 'import' ] ; then
+        # mandatory params:
+        # -h: AM
+        # -u: AMADMIN
+        # -p: AMPASSWD
+        # -t: TREENAME
+        if [[ -z $AM ]] || [[ -z $AMADMIN ]] || [[ -z $AMPASSWD ]] || [[ -z $TREENAME ]] ; then
+            1>&2 echo "Error: Missing mandatory parameter(s) for action/task!"
+            1>&2 echo
+            1>&2 echo "Action/task:"
+            1>&2 echo "  -i         Import an authentication tree."
+            1>&2 echo
+            1>&2 echo "Mandatory Parameters:"
+            1>&2 echo "  -h url     Access Management host URL, e.g.: https://login.example.com/openam"
+            1>&2 echo "  -u user    Username to login with. Must be an admin user with appropriate"
+            1>&2 echo "             rights to manages authentication trees."
+            1>&2 echo "  -p passwd  Password."
+            1>&2 echo "  -t tree    Specify the name of an authentication tree. Mandatory in combination"
+            1>&2 echo "             with the following actions: -i, -e, -d."
+            exit 1
+        fi
+    elif [ "$TASK" == 'importAll' ] ; then
+        # mandatory params:
+        # -h: AM
+        # -u: AMADMIN
+        # -p: AMPASSWD
+        if [[ -z $AM ]] || [[ -z $AMADMIN ]] || [[ -z $AMPASSWD ]] ; then
+            1>&2 echo "Error: Missing mandatory parameter(s) for action/task!"
+            1>&2 echo
+            1>&2 echo "Action/task:"
+            1>&2 echo "  -I         Import all the trees in a realm."
+            1>&2 echo
+            1>&2 echo "Mandatory Parameters:"
+            1>&2 echo "  -h url     Access Management host URL, e.g.: https://login.example.com/openam"
+            1>&2 echo "  -u user    Username to login with. Must be an admin user with appropriate"
+            1>&2 echo "             rights to manages authentication trees."
+            1>&2 echo "  -p passwd  Password."
+            exit 1
+        fi
+    elif [ "$TASK" == 'export' ] ; then
+        # mandatory params:
+        # -h: AM
+        # -u: AMADMIN
+        # -p: AMPASSWD
+        # -t: TREENAME
+        if [[ -z $AM ]] || [[ -z $AMADMIN ]] || [[ -z $AMPASSWD ]] || [[ -z $TREENAME ]] ; then
+            1>&2 echo "Error: Missing mandatory parameter(s) for action/task!"
+            1>&2 echo
+            1>&2 echo "Action/task:"
+            1>&2 echo "  -e         Export an authentication tree."
+            1>&2 echo
+            1>&2 echo "Mandatory Parameters:"
+            1>&2 echo "  -h url     Access Management host URL, e.g.: https://login.example.com/openam"
+            1>&2 echo "  -u user    Username to login with. Must be an admin user with appropriate"
+            1>&2 echo "             rights to manages authentication trees."
+            1>&2 echo "  -p passwd  Password."
+            1>&2 echo "  -t tree    Specify the name of an authentication tree. Mandatory in combination"
+            1>&2 echo "             with the following actions: -i, -e, -d."
+            exit 1
+        fi
+    elif [ "$TASK" == 'exportAll' ] ; then
+        # mandatory params:
+        # -h: AM
+        # -u: AMADMIN
+        # -p: AMPASSWD
+        if [[ -z $AM ]] || [[ -z $AMADMIN ]] || [[ -z $AMPASSWD ]] ; then
+            1>&2 echo "Error: Missing mandatory parameter(s) for action/task!"
+            1>&2 echo
+            1>&2 echo "Action/task:"
+            1>&2 echo "  -E         Export all the trees in a realm."
+            1>&2 echo
+            1>&2 echo "Mandatory Parameters:"
+            1>&2 echo "  -h url     Access Management host URL, e.g.: https://login.example.com/openam"
+            1>&2 echo "  -u user    Username to login with. Must be an admin user with appropriate"
+            1>&2 echo "             rights to manages authentication trees."
+            1>&2 echo "  -p passwd  Password."
+            exit 1
+        fi
+    elif [ "$TASK" == 'exportTreesSeparately' ] ; then
+        # mandatory params:
+        # -h: AM
+        # -u: AMADMIN
+        # -p: AMPASSWD
+        if [[ -z $AM ]] || [[ -z $AMADMIN ]] || [[ -z $AMPASSWD ]] ; then
+            1>&2 echo "Error: Missing mandatory parameter(s) for action/task!"
+            1>&2 echo
+            1>&2 echo "Action/task:"
+            1>&2 echo "  -S         Export all the trees in a realm as separate files of the format"
+            1>&2 echo "             FileprefixTreename.json."
+            1>&2 echo
+            1>&2 echo "Mandatory Parameters:"
+            1>&2 echo "  -h url     Access Management host URL, e.g.: https://login.example.com/openam"
+            1>&2 echo "  -u user    Username to login with. Must be an admin user with appropriate"
+            1>&2 echo "             rights to manages authentication trees."
+            1>&2 echo "  -p passwd  Password."
+            exit 1
+        fi
+    elif [ "$TASK" == 'importTreesSeparately' ] ; then
+        # mandatory params:
+        # -h: AM
+        # -u: AMADMIN
+        # -p: AMPASSWD
+        if [[ -z $AM ]] || [[ -z $AMADMIN ]] || [[ -z $AMPASSWD ]] ; then
+            1>&2 echo "Error: Missing mandatory parameter(s) for action/task!"
+            1>&2 echo
+            1>&2 echo "Action/task:"
+            1>&2 echo "  -s         Import all the trees in the current directory"
+            1>&2 echo
+            1>&2 echo "Mandatory Parameters:"
+            1>&2 echo "  -h url     Access Management host URL, e.g.: https://login.example.com/openam"
+            1>&2 echo "  -u user    Username to login with. Must be an admin user with appropriate"
+            1>&2 echo "             rights to manages authentication trees."
+            1>&2 echo "  -p passwd  Password."
+            exit 1
+        fi
+    elif [ "$TASK" == 'list' ] ; then
+        # mandatory params:
+        # -h: AM
+        # -u: AMADMIN
+        # -p: AMPASSWD
+        if [[ -z $AM ]] || [[ -z $AMADMIN ]] || [[ -z $AMPASSWD ]] ; then
+            1>&2 echo "Error: Missing mandatory parameter(s) for action/task!"
+            1>&2 echo
+            1>&2 echo "Action/task:"
+            1>&2 echo "  -l         List all the trees in a realm."
+            1>&2 echo
+            1>&2 echo "Mandatory Parameters:"
+            1>&2 echo "  -h url     Access Management host URL, e.g.: https://login.example.com/openam"
+            1>&2 echo "  -u user    Username to login with. Must be an admin user with appropriate"
+            1>&2 echo "             rights to manages authentication trees."
+            1>&2 echo "  -p passwd  Password."
+            exit 1
+        fi
+    elif [ "$TASK" == 'describe' ] ; then
+        # mandatory params:
+        # -h: AM
+        # -u: AMADMIN
+        # -p: AMPASSWD
+        #
+        # OR
+        #
+        # -f: FILE
+
+        # only -h supplied
+        if [[ -n $AM ]] && [[ -z $FILE ]] ; then
+            if [[ -z $AMADMIN ]] || [[ -z $AMPASSWD ]] ; then
+                1>&2 echo "Error: Missing mandatory parameter(s) for action/task!"
+                1>&2 echo
+                1>&2 echo "Action/task:"
+                1>&2 echo "  -d         If -h is supplied, describe the indicated tree in the realm,"
+                1>&2 echo "             otherwise describe the tree export file indicated by -f"
+                1>&2 echo
+                1>&2 echo "Mandatory Parameters:"
+                1>&2 echo "  -h url     Access Management host URL, e.g.: https://login.example.com/openam"
+                1>&2 echo "  -u user    Username to login with. Must be an admin user with appropriate"
+                1>&2 echo "             rights to manages authentication trees."
+                1>&2 echo "  -p passwd  Password."
+                exit 1
+            fi
+        
+        # only -f supplied
+        elif [[ -n $FILE ]] && [[ -z $AM ]] ; then
+            true = true
+
+        # neither -h nor -f supplied
+        elif [[ -z $FILE ]] && [[ -z $AM ]] ; then
+            1>&2 echo "Error: Missing mandatory parameter(s) for action/task!"
+            1>&2 echo
+            1>&2 echo "Action/task:"
+            1>&2 echo "  -d         If -h is supplied, describe the indicated tree in the realm,"
+            1>&2 echo "             otherwise describe the tree export file indicated by -f"
+            1>&2 echo
+            1>&2 echo "Mandatory Parameters:"
+            1>&2 echo "  -h url     Access Management host URL, e.g.: https://login.example.com/openam"
+            1>&2 echo "  -u user    Username to login with. Must be an admin user with appropriate"
+            1>&2 echo "             rights to manages authentication trees."
+            1>&2 echo "  -p passwd  Password."
+            1>&2 echo "  -f file    If supplied, export/list to and import from <file> instead of stdout"
+            1>&2 echo "             and stdin. For -S, use as file prefix"
+            exit 1
+
+        # both -h and -f supplied
+        elif [[ -n $FILE ]] && [[ -n $AM ]] ; then
+            1>&2 echo "Error: Conflicting parameters supplied: Use -h or -f but not both."
+            1>&2 echo
+            1>&2 echo "Action/task:"
+            1>&2 echo "  -d         If -h is supplied, describe the indicated tree in the realm,"
+            1>&2 echo "             otherwise describe the tree export file indicated by -f"
+            1>&2 echo
+            1>&2 echo "Mandatory Parameters:"
+            1>&2 echo "  -h url     Access Management host URL, e.g.: https://login.example.com/openam"
+            1>&2 echo "  -u user    Username to login with. Must be an admin user with appropriate"
+            1>&2 echo "             rights to manages authentication trees."
+            1>&2 echo "  -p passwd  Password."
+            1>&2 echo "  -f file    If supplied, export/list to and import from <file> instead of stdout"
+            1>&2 echo "             and stdin. For -S, use as file prefix"
+            exit 1
+        fi
+    elif [ "$TASK" == 'describeAll' ] ; then
+        true = true
+
+    elif [ "$TASK" == 'prune' ] ; then
+        # mandatory params:
+        # -h: AM
+        # -u: AMADMIN
+        # -p: AMPASSWD
+        if [[ -z $AM ]] || [[ -z $AMADMIN ]] || [[ -z $AMPASSWD ]] ; then
+            1>&2 echo "Error: Missing mandatory parameter(s) for action/task!"
+            1>&2 echo
+            1>&2 echo "Action/task:"
+            1>&2 echo "  -P         Prune orphaned configuration artifacts left behind after deleting"
+            1>&2 echo "             authentication trees. You will be prompted before any destructive"
+            1>&2 echo "             operations are performed."
+            1>&2 echo
+            1>&2 echo "Mandatory Parameters:"
+            1>&2 echo "  -h url     Access Management host URL, e.g.: https://login.example.com/openam"
+            1>&2 echo "  -u user    Username to login with. Must be an admin user with appropriate"
+            1>&2 echo "             rights to manages authentication trees."
+            1>&2 echo "  -p passwd  Password."
+            exit 1
+        fi
+    fi
+}
+
+checkParams
 
 if [ "$TASK" == 'import' ] ; then
     login
@@ -515,15 +1134,25 @@ elif [ "$TASK" == 'importAll' ] ; then
 elif [ "$TASK" == 'export' ] ; then
     login
     if [[ -n $FILE ]]; then
-        echo "" > $FILE
+        echo "" > "$FILE"
     fi
     exportTree "$TREENAME"
 elif [ "$TASK" == 'exportAll' ] ; then
     login
     exportAllTrees
+elif [ "$TASK" == 'exportTreesSeparately' ] ; then
+    login
+    exportTreesSeparately
+elif [ "$TASK" == 'importTreesSeparately' ] ; then
+    login
+    importTreesSeparately
 elif [ "$TASK" == 'list' ] ; then
     login
     listTrees
+elif [ "$TASK" == 'describe' ] ; then
+    describeTree
+elif [ "$TASK" == 'describeAll' ] ; then
+    describeAllTrees
 elif [ "$TASK" == 'prune' ] ; then
     login
     prune
